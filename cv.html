@@ -1,0 +1,1220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#4F46E5">
+    <title>ResuMake - Professional Resume Builder</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Merriweather:wght@300;400;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        serif: ['Merriweather', 'serif'],
+                        mono: ['Roboto Mono', 'monospace'],
+                    },
+                    colors: {
+                        primary: '#4F46E5',
+                        secondary: '#10B981',
+                        accent: '#F59E0B',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        * {
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+        }
+        
+        body {
+            overscroll-behavior: none;
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        .template-modern { font-family: 'Inter', sans-serif; }
+        .template-classic { font-family: 'Merriweather', serif; }
+        .template-tech { font-family: 'Roboto Mono', monospace; }
+        
+        .resume-preview {
+            background: white;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            min-height: 297mm;
+            width: 210mm;
+            margin: 0 auto;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        @media print {
+            .no-print { display: none !important; }
+            .resume-preview { 
+                box-shadow: none; 
+                margin: 0; 
+                width: 100% !important;
+                min-height: 100vh;
+            }
+        }
+        
+        /* Mobile optimizations */
+        @media (max-width: 1024px) {
+            .resume-preview {
+                width: 100%;
+                min-height: auto;
+                aspect-ratio: 210/297;
+                font-size: 0.85rem;
+            }
+        }
+        
+        @media (max-width: 640px) {
+            .resume-preview {
+                font-size: 0.75rem;
+                padding: 1.5rem !important;
+            }
+        }
+        
+        .gradient-text {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .input-group {
+            transition: all 0.2s ease;
+        }
+        
+        .input-group:focus-within {
+            transform: translateX(3px);
+        }
+        
+        .template-card {
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .template-card:active {
+            transform: scale(0.95);
+        }
+        
+        .template-card.active {
+            ring: 2px solid #4F46E5;
+            transform: scale(1.02);
+        }
+        
+        .skill-tag {
+            animation: fadeIn 0.3s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.9); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        
+        .section-enter {
+            animation: slideIn 0.3s ease;
+        }
+        
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* Mobile bottom nav */
+        .mobile-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            border-top: 1px solid #e5e7eb;
+            padding: 0.5rem;
+            z-index: 100;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            padding-bottom: env(safe-area-inset-bottom, 0.5rem);
+        }
+        
+        .mobile-nav-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            transition: all 0.2s;
+            font-size: 0.75rem;
+            color: #6b7280;
+        }
+        
+        .mobile-nav-btn.active {
+            color: #4F46E5;
+            background: #eef2ff;
+        }
+        
+        .mobile-nav-btn svg {
+            width: 1.5rem;
+            height: 1.5rem;
+        }
+        
+        /* Touch-friendly inputs */
+        input, textarea, button {
+            font-size: 16px; /* Prevents zoom on iOS */
+        }
+        
+        @media (max-width: 640px) {
+            input, textarea, button {
+                min-height: 44px; /* Minimum touch target */
+            }
+        }
+        
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #c7c7c7;
+            border-radius: 3px;
+        }
+        
+        /* Safe area for mobile */
+        .safe-bottom {
+            padding-bottom: env(safe-area-inset-bottom, 1rem);
+        }
+        
+        /* Preview mode transitions */
+        .view-section {
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+        
+        .view-section.hidden-view {
+            display: none;
+            opacity: 0;
+            transform: translateX(20px);
+        }
+        
+        /* Floating action button for mobile */
+        .fab {
+            position: fixed;
+            bottom: 5rem;
+            right: 1rem;
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #4F46E5 0%, #7c3aed 100%);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.4);
+            z-index: 90;
+            transition: transform 0.2s;
+        }
+        
+        .fab:active {
+            transform: scale(0.9);
+        }
+        
+        @media (min-width: 1025px) {
+            .fab {
+                display: none;
+            }
+        }
+        
+        /* Mobile-optimized template cards */
+        @media (max-width: 640px) {
+            .template-grid {
+                grid-template-columns: repeat(3, 1fr);
+                gap: 0.5rem;
+            }
+            
+            .template-card {
+                aspect-ratio: 3/4;
+            }
+            
+            .template-card > div:first-child {
+                height: auto;
+                flex: 1;
+            }
+        }
+        
+        /* Prevent text selection on UI elements */
+        .no-select {
+            -webkit-user-select: none;
+            user-select: none;
+        }
+        
+        /* Improved touch scrolling */
+        .touch-scroll {
+            -webkit-overflow-scrolling: touch;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800 font-sans h-screen overflow-hidden">
+
+    <!-- Header -->
+    <header class="bg-white border-b border-gray-200 h-14 lg:h-16 flex items-center justify-between px-4 lg:px-6 shadow-sm z-50 relative no-print">
+        <div class="flex items-center gap-2 lg:gap-3">
+            <div class="w-8 h-8 lg:w-10 lg:h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center text-white font-bold text-lg lg:text-xl shadow-lg">
+                R
+            </div>
+            <h1 class="text-xl lg:text-2xl font-bold gradient-text">ResuMake</h1>
+        </div>
+        
+        <div class="flex items-center gap-2 lg:gap-4">
+            <button onclick="app.resetData()" class="hidden sm:block px-3 lg:px-4 py-2 text-gray-600 hover:text-red-600 transition-colors text-sm font-medium">
+                Reset
+            </button>
+            <button onclick="app.downloadPDF()" class="px-4 lg:px-6 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg hover:shadow-lg active:scale-95 transition-all font-medium flex items-center gap-2 text-sm lg:text-base">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                <span class="hidden sm:inline">Download PDF</span>
+                <span class="sm:hidden">PDF</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Desktop Layout -->
+    <div class="hidden lg:flex h-[calc(100vh-64px)]">
+        
+        <!-- Left Sidebar: Editor -->
+        <aside class="w-1/2 bg-white border-r border-gray-200 overflow-y-auto touch-scroll">
+            <div class="p-6 space-y-8 max-w-2xl mx-auto pb-24">
+                
+                <!-- Template Selection -->
+                <section class="section-enter">
+                    <h2 class="text-lg font-semibold mb-4 flex items-center gap-2">
+                        <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"></path></svg>
+                        Choose Template
+                    </h2>
+                    <div class="grid grid-cols-3 gap-4 template-grid">
+                        <div onclick="app.setTemplate('modern')" id="template-modern-desktop" class="template-card cursor-pointer rounded-xl border-2 border-indigo-500 overflow-hidden active">
+                            <div class="h-32 bg-gradient-to-br from-gray-50 to-gray-100 p-4 flex flex-col gap-2">
+                                <div class="h-3 w-3/4 bg-gray-300 rounded"></div>
+                                <div class="h-2 w-1/2 bg-gray-200 rounded"></div>
+                                <div class="mt-auto space-y-1">
+                                    <div class="h-2 w-full bg-gray-200 rounded"></div>
+                                    <div class="h-2 w-5/6 bg-gray-200 rounded"></div>
+                                </div>
+                            </div>
+                            <div class="p-3 text-center font-medium text-sm">Modern</div>
+                        </div>
+                        
+                        <div onclick="app.setTemplate('classic')" id="template-classic-desktop" class="template-card cursor-pointer rounded-xl border-2 border-transparent hover:border-gray-300 overflow-hidden">
+                            <div class="h-32 bg-gradient-to-br from-amber-50 to-orange-50 p-4 font-serif">
+                                <div class="text-center border-b-2 border-amber-800 pb-2 mb-2">
+                                    <div class="h-3 w-2/3 mx-auto bg-amber-800 rounded"></div>
+                                </div>
+                                <div class="space-y-1 text-xs text-amber-900">
+                                    <div class="h-2 w-full bg-amber-200 rounded"></div>
+                                    <div class="h-2 w-4/5 bg-amber-200 rounded"></div>
+                                </div>
+                            </div>
+                            <div class="p-3 text-center font-medium text-sm">Classic</div>
+                        </div>
+                        
+                        <div onclick="app.setTemplate('tech')" id="template-tech-desktop" class="template-card cursor-pointer rounded-xl border-2 border-transparent hover:border-gray-300 overflow-hidden">
+                            <div class="h-32 bg-gradient-to-br from-slate-800 to-slate-900 p-4 font-mono text-green-400">
+                                <div class="text-xs mb-2">&lt;header&gt;</div>
+                                <div class="h-2 w-3/4 bg-green-500 rounded mb-1"></div>
+                                <div class="h-2 w-1/2 bg-green-400 rounded opacity-60"></div>
+                                <div class="text-xs mt-2 text-slate-400">&lt;/header&gt;</div>
+                            </div>
+                            <div class="p-3 text-center font-medium text-sm">Developer</div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Personal Info -->
+                <section class="section-enter" style="animation-delay: 0.1s">
+                    <h2 class="text-lg font-semibold mb-4 flex items-center gap-2">
+                        <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                        Personal Information
+                    </h2>
+                    <div class="space-y-4">
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="input-group">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+                                <input type="text" id="fullName-desktop" oninput="app.updatePersonal('name', this.value)" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all" placeholder="John Doe">
+                            </div>
+                            <div class="input-group">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Job Title</label>
+                                <input type="text" id="jobTitle-desktop" oninput="app.updatePersonal('title', this.value)" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all" placeholder="Senior Product Designer">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="input-group">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                                <input type="email" id="email-desktop" oninput="app.updatePersonal('email', this.value)" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all" placeholder="john@example.com">
+                            </div>
+                            <div class="input-group">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+                                <input type="tel" id="phone-desktop" oninput="app.updatePersonal('phone', this.value)" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all" placeholder="+1 (555) 123-4567">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="input-group">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Location</label>
+                                <input type="text" id="location-desktop" oninput="app.updatePersonal('location', this.value)" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all" placeholder="San Francisco, CA">
+                            </div>
+                            <div class="input-group">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Website/LinkedIn</label>
+                                <input type="text" id="website-desktop" oninput="app.updatePersonal('website', this.value)" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all" placeholder="linkedin.com/in/johndoe">
+                            </div>
+                        </div>
+                        <div class="input-group">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Professional Summary</label>
+                            <textarea id="summary-desktop" oninput="app.updatePersonal('summary', this.value)" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all resize-none" placeholder="Brief overview of your professional background..."></textarea>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Experience -->
+                <section class="section-enter" style="animation-delay: 0.2s">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-lg font-semibold flex items-center gap-2">
+                            <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+                            Experience
+                        </h2>
+                        <button onclick="app.addExperience()" class="text-sm text-indigo-600 hover:text-indigo-800 font-medium flex items-center gap-1 transition-colors px-3 py-1 rounded-lg hover:bg-indigo-50">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                            Add
+                        </button>
+                    </div>
+                    <div id="experience-list-desktop" class="space-y-4"></div>
+                </section>
+
+                <!-- Education -->
+                <section class="section-enter" style="animation-delay: 0.3s">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-lg font-semibold flex items-center gap-2">
+                            <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l9-5-9-5-9 5 9 5z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"></path></svg>
+                            Education
+                        </h2>
+                        <button onclick="app.addEducation()" class="text-sm text-indigo-600 hover:text-indigo-800 font-medium flex items-center gap-1 transition-colors px-3 py-1 rounded-lg hover:bg-indigo-50">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                            Add
+                        </button>
+                    </div>
+                    <div id="education-list-desktop" class="space-y-4"></div>
+                </section>
+
+                <!-- Skills -->
+                <section class="section-enter" style="animation-delay: 0.4s">
+                    <h2 class="text-lg font-semibold mb-4 flex items-center gap-2">
+                        <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                        Skills
+                    </h2>
+                    <div class="flex gap-2 mb-3">
+                        <input type="text" id="skill-input-desktop" onkeypress="app.handleSkillKeypress(event)" class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none" placeholder="Add a skill...">
+                        <button onclick="app.addSkill()" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors">
+                            <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                        </button>
+                    </div>
+                    <div id="skills-container-desktop" class="flex flex-wrap gap-2"></div>
+                </section>
+
+                <div class="h-12"></div>
+            </div>
+        </aside>
+
+        <!-- Right Side: Live Preview -->
+        <main class="w-1/2 bg-gray-100 overflow-y-auto p-8 touch-scroll">
+            <div class="sticky top-0 z-10 bg-gray-100 pb-4 mb-4 border-b border-gray-200 no-print">
+                <p class="text-sm text-gray-500 text-center">Live Preview</p>
+            </div>
+            <div id="resume-container-desktop" class="resume-preview template-modern p-8"></div>
+            <div class="h-12"></div>
+        </main>
+    </div>
+
+    <!-- Mobile Layout -->
+    <div class="lg:hidden h-[calc(100vh-56px)] pb-16">
+        
+        <!-- Editor View -->
+        <div id="mobile-editor" class="view-section h-full overflow-y-auto touch-scroll bg-white">
+            <div class="p-4 space-y-6 max-w-2xl mx-auto safe-bottom">
+                
+                <!-- Template Selection -->
+                <section>
+                    <h2 class="text-base font-semibold mb-3 flex items-center gap-2">
+                        <svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"></path></svg>
+                        Template
+                    </h2>
+                    <div class="grid grid-cols-3 gap-2 template-grid">
+                        <div onclick="app.setTemplate('modern')" id="template-modern-mobile" class="template-card cursor-pointer rounded-lg border-2 border-indigo-500 overflow-hidden active">
+                            <div class="aspect-[3/4] bg-gradient-to-br from-gray-50 to-gray-100 p-2 flex flex-col gap-1">
+                                <div class="h-2 w-3/4 bg-gray-300 rounded"></div>
+                                <div class="h-1.5 w-1/2 bg-gray-200 rounded"></div>
+                                <div class="mt-auto space-y-0.5">
+                                    <div class="h-1.5 w-full bg-gray-200 rounded"></div>
+                                    <div class="h-1.5 w-5/6 bg-gray-200 rounded"></div>
+                                </div>
+                            </div>
+                            <div class="p-2 text-center text-xs font-medium">Modern</div>
+                        </div>
+                        
+                        <div onclick="app.setTemplate('classic')" id="template-classic-mobile" class="template-card cursor-pointer rounded-lg border-2 border-transparent hover:border-gray-300 overflow-hidden">
+                            <div class="aspect-[3/4] bg-gradient-to-br from-amber-50 to-orange-50 p-2 font-serif flex flex-col">
+                                <div class="text-center border-b border-amber-800 pb-1 mb-1">
+                                    <div class="h-2 w-2/3 mx-auto bg-amber-800 rounded"></div>
+                                </div>
+                                <div class="space-y-0.5 text-[0.5rem] text-amber-900 mt-auto">
+                                    <div class="h-1.5 w-full bg-amber-200 rounded"></div>
+                                    <div class="h-1.5 w-4/5 bg-amber-200 rounded"></div>
+                                </div>
+                            </div>
+                            <div class="p-2 text-center text-xs font-medium">Classic</div>
+                        </div>
+                        
+                        <div onclick="app.setTemplate('tech')" id="template-tech-mobile" class="template-card cursor-pointer rounded-lg border-2 border-transparent hover:border-gray-300 overflow-hidden">
+                            <div class="aspect-[3/4] bg-gradient-to-br from-slate-800 to-slate-900 p-2 font-mono text-green-400 flex flex-col">
+                                <div class="text-[0.5rem] mb-1">&lt;h&gt;</div>
+                                <div class="h-1.5 w-3/4 bg-green-500 rounded mb-0.5"></div>
+                                <div class="h-1.5 w-1/2 bg-green-400 rounded opacity-60 mt-auto"></div>
+                            </div>
+                            <div class="p-2 text-center text-xs font-medium">Dev</div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Personal Info -->
+                <section>
+                    <h2 class="text-base font-semibold mb-3 flex items-center gap-2">
+                        <svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                        Personal Info
+                    </h2>
+                    <div class="space-y-3">
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 mb-1">Full Name</label>
+                            <input type="text" id="fullName-mobile" oninput="app.updatePersonal('name', this.value)" class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none text-base" placeholder="John Doe">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 mb-1">Job Title</label>
+                            <input type="text" id="jobTitle-mobile" oninput="app.updatePersonal('title', this.value)" class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none text-base" placeholder="Senior Product Designer">
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-medium text-gray-600 mb-1">Email</label>
+                                <input type="email" id="email-mobile" oninput="app.updatePersonal('email', this.value)" class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none text-base" placeholder="Email">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-gray-600 mb-1">Phone</label>
+                                <input type="tel" id="phone-mobile" oninput="app.updatePersonal('phone', this.value)" class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none text-base" placeholder="Phone">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-medium text-gray-600 mb-1">Location</label>
+                                <input type="text" id="location-mobile" oninput="app.updatePersonal('location', this.value)" class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none text-base" placeholder="City">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-gray-600 mb-1">Website</label>
+                                <input type="text" id="website-mobile" oninput="app.updatePersonal('website', this.value)" class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none text-base" placeholder="URL">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 mb-1">Summary</label>
+                            <textarea id="summary-mobile" oninput="app.updatePersonal('summary', this.value)" rows="3" class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none text-base resize-none" placeholder="Brief professional summary..."></textarea>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Experience -->
+                <section>
+                    <div class="flex items-center justify-between mb-3">
+                        <h2 class="text-base font-semibold flex items-center gap-2">
+                            <svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+                            Experience
+                        </h2>
+                        <button onclick="app.addExperience()" class="text-xs text-indigo-600 hover:text-indigo-800 font-medium flex items-center gap-1 px-2 py-1 rounded-lg hover:bg-indigo-50">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                            Add
+                        </button>
+                    </div>
+                    <div id="experience-list-mobile" class="space-y-3"></div>
+                </section>
+
+                <!-- Education -->
+                <section>
+                    <div class="flex items-center justify-between mb-3">
+                        <h2 class="text-base font-semibold flex items-center gap-2">
+                            <svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l9-5-9-5-9 5 9 5z"></path></svg>
+                            Education
+                        </h2>
+                        <button onclick="app.addEducation()" class="text-xs text-indigo-600 hover:text-indigo-800 font-medium flex items-center gap-1 px-2 py-1 rounded-lg hover:bg-indigo-50">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                            Add
+                        </button>
+                    </div>
+                    <div id="education-list-mobile" class="space-y-3"></div>
+                </section>
+
+                <!-- Skills -->
+                <section>
+                    <h2 class="text-base font-semibold mb-3 flex items-center gap-2">
+                        <svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                        Skills
+                    </h2>
+                    <div class="flex gap-2 mb-3">
+                        <input type="text" id="skill-input-mobile" onkeypress="app.handleSkillKeypress(event)" class="flex-1 px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none text-base" placeholder="Add skill...">
+                        <button onclick="app.addSkill()" class="px-3 py-2.5 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors">
+                            <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                        </button>
+                    </div>
+                    <div id="skills-container-mobile" class="flex flex-wrap gap-2"></div>
+                </section>
+
+                <div class="h-20"></div>
+            </div>
+        </div>
+
+        <!-- Preview View -->
+        <div id="mobile-preview" class="view-section hidden-view h-full overflow-y-auto touch-scroll bg-gray-100 p-4">
+            <div id="resume-container-mobile" class="resume-preview template-modern p-6"></div>
+            <div class="h-20"></div>
+        </div>
+
+        <!-- Mobile Bottom Navigation -->
+        <nav class="mobile-nav no-select">
+            <button onclick="app.switchView('editor')" id="nav-editor" class="mobile-nav-btn active">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                <span>Edit</span>
+            </button>
+            <button onclick="app.switchView('preview')" id="nav-preview" class="mobile-nav-btn">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                <span>Preview</span>
+            </button>
+            <button onclick="app.downloadPDF()" class="mobile-nav-btn text-indigo-600">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                <span>PDF</span>
+            </button>
+        </nav>
+    </div>
+
+    <script>
+        const app = {
+            data: {
+                template: 'modern',
+                personal: {
+                    name: 'Alex Morgan',
+                    title: 'Senior Product Designer',
+                    email: 'alex.morgan@email.com',
+                    phone: '+1 (555) 987-6543',
+                    location: 'San Francisco, CA',
+                    website: 'alexmorgan.design',
+                    summary: 'Creative product designer with 6+ years of experience building digital products that users love. Specialized in design systems, user research, and cross-functional collaboration.'
+                },
+                experience: [
+                    {
+                        id: 1,
+                        company: 'Stripe',
+                        position: 'Senior Product Designer',
+                        startDate: '2021',
+                        endDate: 'Present',
+                        description: 'Lead design for Payments team, improving checkout conversion by 25%. Established design system used across 12 product teams.'
+                    },
+                    {
+                        id: 2,
+                        company: 'Airbnb',
+                        position: 'Product Designer',
+                        startDate: '2018',
+                        endDate: '2021',
+                        description: 'Redesigned host onboarding flow, increasing completion rates by 40%.'
+                    }
+                ],
+                education: [
+                    {
+                        id: 1,
+                        school: 'Rhode Island School of Design',
+                        degree: 'BFA in Graphic Design',
+                        year: '2014 - 2018',
+                        details: 'Minor in Human-Computer Interaction.'
+                    }
+                ],
+                skills: ['Figma', 'Design Systems', 'User Research', 'Prototyping', 'HTML/CSS', 'React']
+            },
+
+            currentView: 'editor',
+            isMobile: window.innerWidth < 1024,
+
+            init() {
+                this.loadFromStorage();
+                this.setupResizeListener();
+                this.render();
+                this.setupAutoSave();
+            },
+
+            setupResizeListener() {
+                window.addEventListener('resize', () => {
+                    const newIsMobile = window.innerWidth < 1024;
+                    if (newIsMobile !== this.isMobile) {
+                        this.isMobile = newIsMobile;
+                        this.render();
+                    }
+                });
+            },
+
+            switchView(view) {
+                this.currentView = view;
+                const editor = document.getElementById('mobile-editor');
+                const preview = document.getElementById('mobile-preview');
+                const navEditor = document.getElementById('nav-editor');
+                const navPreview = document.getElementById('nav-preview');
+
+                if (view === 'editor') {
+                    editor.classList.remove('hidden-view');
+                    preview.classList.add('hidden-view');
+                    navEditor.classList.add('active');
+                    navPreview.classList.remove('active');
+                } else {
+                    editor.classList.add('hidden-view');
+                    preview.classList.remove('hidden-view');
+                    navEditor.classList.remove('active');
+                    navPreview.classList.add('active');
+                    this.renderResume(); // Ensure fresh render
+                }
+                
+                // Scroll to top
+                document.querySelector('.view-section:not(.hidden-view)').scrollTop = 0;
+            },
+
+            setTemplate(templateName) {
+                this.data.template = templateName;
+                
+                // Update both desktop and mobile UI
+                ['desktop', 'mobile'].forEach(device => {
+                    document.querySelectorAll(`[id^="template-"][id$="-${device}"]`).forEach(card => {
+                        card.classList.remove('active', 'border-indigo-500');
+                        card.classList.add('border-transparent');
+                    });
+                    const activeCard = document.getElementById(`template-${templateName}-${device}`);
+                    if (activeCard) {
+                        activeCard.classList.add('active', 'border-indigo-500');
+                        activeCard.classList.remove('border-transparent');
+                    }
+                });
+                
+                this.renderResume();
+                this.saveToStorage();
+            },
+
+            updatePersonal(field, value) {
+                this.data.personal[field] = value;
+                // Sync between mobile and desktop inputs
+                const suffix = this.isMobile ? 'desktop' : 'mobile';
+                const otherInput = document.getElementById(`${field}-${suffix}`);
+                if (otherInput && otherInput.value !== value) {
+                    otherInput.value = value;
+                }
+                this.renderResume();
+                this.saveToStorage();
+            },
+
+            addExperience() {
+                const newExp = {
+                    id: Date.now(),
+                    company: '',
+                    position: '',
+                    startDate: '',
+                    endDate: '',
+                    description: ''
+                };
+                this.data.experience.push(newExp);
+                this.render();
+                this.saveToStorage();
+                
+                // Scroll to new item on mobile
+                if (this.isMobile) {
+                    setTimeout(() => {
+                        const list = document.getElementById('experience-list-mobile');
+                        list.lastElementChild?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }, 100);
+                }
+            },
+
+            updateExperience(id, field, value) {
+                const exp = this.data.experience.find(e => e.id === id);
+                if (exp) {
+                    exp[field] = value;
+                    this.renderResume();
+                    this.saveToStorage();
+                }
+            },
+
+            removeExperience(id) {
+                if (confirm('Delete this experience?')) {
+                    this.data.experience = this.data.experience.filter(e => e.id !== id);
+                    this.render();
+                    this.saveToStorage();
+                }
+            },
+
+            addEducation() {
+                const newEdu = {
+                    id: Date.now(),
+                    school: '',
+                    degree: '',
+                    year: '',
+                    details: ''
+                };
+                this.data.education.push(newEdu);
+                this.render();
+                this.saveToStorage();
+            },
+
+            updateEducation(id, field, value) {
+                const edu = this.data.education.find(e => e.id === id);
+                if (edu) {
+                    edu[field] = value;
+                    this.renderResume();
+                    this.saveToStorage();
+                }
+            },
+
+            removeEducation(id) {
+                if (confirm('Delete this education?')) {
+                    this.data.education = this.data.education.filter(e => e.id !== id);
+                    this.render();
+                    this.saveToStorage();
+                }
+            },
+
+            handleSkillKeypress(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    this.addSkill();
+                }
+            },
+
+            addSkill() {
+                const input = document.getElementById(this.isMobile ? 'skill-input-mobile' : 'skill-input-desktop');
+                const skill = input.value.trim();
+                if (skill && !this.data.skills.includes(skill)) {
+                    this.data.skills.push(skill);
+                    input.value = '';
+                    this.render();
+                    this.saveToStorage();
+                }
+            },
+
+            removeSkill(skill) {
+                this.data.skills = this.data.skills.filter(s => s !== skill);
+                this.render();
+                this.saveToStorage();
+            },
+
+            saveToStorage() {
+                localStorage.setItem('resumeData', JSON.stringify(this.data));
+            },
+
+            loadFromStorage() {
+                const saved = localStorage.getItem('resumeData');
+                if (saved) {
+                    this.data = JSON.parse(saved);
+                    // Populate all inputs
+                    Object.keys(this.data.personal).forEach(key => {
+                        ['desktop', 'mobile'].forEach(suffix => {
+                            const el = document.getElementById(`${key}-${suffix}`);
+                            if (el) el.value = this.data.personal[key];
+                        });
+                    });
+                }
+            },
+
+            setupAutoSave() {
+                setInterval(() => this.saveToStorage(), 5000);
+            },
+
+            resetData() {
+                if (confirm('Clear all data? This cannot be undone.')) {
+                    localStorage.removeItem('resumeData');
+                    location.reload();
+                }
+            },
+
+            downloadPDF() {
+                // Switch to preview first on mobile
+                if (this.isMobile && this.currentView !== 'preview') {
+                    this.switchView('preview');
+                    setTimeout(() => this.generatePDF(), 300);
+                } else {
+                    this.generatePDF();
+                }
+            },
+
+            generatePDF() {
+                const containerId = this.isMobile ? 'resume-container-mobile' : 'resume-container-desktop';
+                const element = document.getElementById(containerId);
+                
+                // Clone for PDF generation to avoid modifying view
+                const clone = element.cloneNode(true);
+                clone.style.width = '210mm';
+                clone.style.minHeight = '297mm';
+                clone.style.position = 'fixed';
+                clone.style.top = '-9999px';
+                document.body.appendChild(clone);
+                
+                const opt = {
+                    margin: 0,
+                    filename: `${this.data.personal.name.replace(/\s+/g, '_')}_Resume.pdf`,
+                    image: { type: 'jpeg', quality: 0.98 },
+                    html2canvas: { scale: 2, useCORS: true },
+                    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+                };
+                
+                html2pdf().set(opt).from(clone).save().then(() => {
+                    document.body.removeChild(clone);
+                });
+            },
+
+            render() {
+                this.renderInputs();
+                this.renderResume();
+            },
+
+            renderInputs() {
+                const devices = this.isMobile ? ['mobile'] : ['desktop'];
+                
+                devices.forEach(device => {
+                    // Experience
+                    const expContainer = document.getElementById(`experience-list-${device}`);
+                    if (expContainer) {
+                        expContainer.innerHTML = this.data.experience.map(exp => `
+                            <div class="bg-gray-50 p-3 rounded-lg border border-gray-200 relative group">
+                                <button onclick="app.removeExperience(${exp.id})" class="absolute top-2 right-2 text-gray-400 hover:text-red-500 p-1">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                                </button>
+                                <div class="grid grid-cols-1 ${device === 'desktop' ? 'sm:grid-cols-2' : ''} gap-2 mb-2">
+                                    <input type="text" value="${exp.company}" oninput="app.updateExperience(${exp.id}, 'company', this.value)" class="w-full px-3 py-2 border border-gray-300 rounded text-sm" placeholder="Company">
+                                    <input type="text" value="${exp.position}" oninput="app.updateExperience(${exp.id}, 'position', this.value)" class="w-full px-3 py-2 border border-gray-300 rounded text-sm" placeholder="Position">
+                                </div>
+                                <div class="grid grid-cols-2 gap-2 mb-2">
+                                    <input type="text" value="${exp.startDate}" oninput="app.updateExperience(${exp.id}, 'startDate', this.value)" class="w-full px-3 py-2 border border-gray-300 rounded text-sm" placeholder="Start">
+                                    <input type="text" value="${exp.endDate}" oninput="app.updateExperience(${exp.id}, 'endDate', this.value)" class="w-full px-3 py-2 border border-gray-300 rounded text-sm" placeholder="End">
+                                </div>
+                                <textarea oninput="app.updateExperience(${exp.id}, 'description', this.value)" rows="2" class="w-full px-3 py-2 border border-gray-300 rounded text-sm resize-none" placeholder="Description">${exp.description}</textarea>
+                            </div>
+                        `).join('');
+                    }
+
+                    // Education
+                    const eduContainer = document.getElementById(`education-list-${device}`);
+                    if (eduContainer) {
+                        eduContainer.innerHTML = this.data.education.map(edu => `
+                            <div class="bg-gray-50 p-3 rounded-lg border border-gray-200 relative group">
+                                <button onclick="app.removeEducation(${edu.id})" class="absolute top-2 right-2 text-gray-400 hover:text-red-500 p-1">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                                </button>
+                                <div class="grid grid-cols-1 ${device === 'desktop' ? 'sm:grid-cols-2' : ''} gap-2 mb-2">
+                                    <input type="text" value="${edu.school}" oninput="app.updateEducation(${edu.id}, 'school', this.value)" class="w-full px-3 py-2 border border-gray-300 rounded text-sm" placeholder="School">
+                                    <input type="text" value="${edu.degree}" oninput="app.updateEducation(${edu.id}, 'degree', this.value)" class="w-full px-3 py-2 border border-gray-300 rounded text-sm" placeholder="Degree">
+                                </div>
+                                <input type="text" value="${edu.year}" oninput="app.updateEducation(${edu.id}, 'year', this.value)" class="w-full px-3 py-2 border border-gray-300 rounded text-sm mb-2" placeholder="Year">
+                                <textarea oninput="app.updateEducation(${edu.id}, 'details', this.value)" rows="2" class="w-full px-3 py-2 border border-gray-300 rounded text-sm resize-none" placeholder="Details">${edu.details}</textarea>
+                            </div>
+                        `).join('');
+                    }
+
+                    // Skills
+                    const skillsContainer = document.getElementById(`skills-container-${device}`);
+                    if (skillsContainer) {
+                        skillsContainer.innerHTML = this.data.skills.map(skill => `
+                            <span class="skill-tag inline-flex items-center gap-1 px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-sm font-medium">
+                                ${skill}
+                                <button onclick="app.removeSkill('${skill}')" class="hover:text-indigo-900 p-0.5">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                                </button>
+                            </span>
+                        `).join('');
+                    }
+                });
+            },
+
+            renderResume() {
+                const { template, personal, experience, education, skills } = this.data;
+                const containerIds = this.isMobile ? ['resume-container-mobile'] : ['resume-container-desktop'];
+                
+                containerIds.forEach(id => {
+                    const container = document.getElementById(id);
+                    if (!container) return;
+                    
+                    container.className = `resume-preview template-${template} ${id.includes('mobile') ? 'p-6' : 'p-8'}`;
+                    
+                    let html = '';
+                    if (template === 'modern') {
+                        html = this.renderModernTemplate(personal, experience, education, skills, id.includes('mobile'));
+                    } else if (template === 'classic') {
+                        html = this.renderClassicTemplate(personal, experience, education, skills, id.includes('mobile'));
+                    } else {
+                        html = this.renderTechTemplate(personal, experience, education, skills, id.includes('mobile'));
+                    }
+                    
+                    container.innerHTML = html;
+                });
+            },
+
+            renderModernTemplate(personal, experience, education, skills, isMobile) {
+                const textSizes = isMobile ? {
+                    name: 'text-2xl',
+                    title: 'text-lg',
+                    section: 'text-sm',
+                    body: 'text-xs'
+                } : {
+                    name: 'text-4xl',
+                    title: 'text-xl',
+                    section: 'text-lg',
+                    body: 'text-sm'
+                };
+
+                return `
+                    <div class="h-full flex flex-col">
+                        <header class="border-b-2 border-indigo-600 pb-4 mb-4">
+                            <h1 class="${textSizes.name} font-bold text-gray-900 mb-1">${personal.name || 'Your Name'}</h1>
+                            <p class="${textSizes.title} text-indigo-600 font-medium mb-2">${personal.title || 'Professional Title'}</p>
+                            <div class="flex flex-wrap gap-2 ${textSizes.body} text-gray-600">
+                                ${personal.email ? `<span class="flex items-center gap-1">📧 ${personal.email}</span>` : ''}
+                                ${personal.phone ? `<span class="flex items-center gap-1">📱 ${personal.phone}</span>` : ''}
+                                ${personal.location ? `<span class="flex items-center gap-1">📍 ${personal.location}</span>` : ''}
+                                ${personal.website ? `<span class="flex items-center gap-1">🔗 ${personal.website}</span>` : ''}
+                            </div>
+                        </header>
+
+                        ${personal.summary ? `
+                            <section class="mb-4">
+                                <h2 class="${textSizes.section} font-bold text-gray-900 uppercase tracking-wider mb-2 border-b border-gray-200 pb-1">Summary</h2>
+                                <p class="${textSizes.body} text-gray-700 leading-relaxed">${personal.summary}</p>
+                            </section>
+                        ` : ''}
+
+                        ${experience.length ? `
+                            <section class="mb-4">
+                                <h2 class="${textSizes.section} font-bold text-gray-900 uppercase tracking-wider mb-3 border-b border-gray-200 pb-1">Experience</h2>
+                                <div class="space-y-3">
+                                    ${experience.map(exp => `
+                                        <div>
+                                            <div class="flex justify-between items-baseline mb-1">
+                                                <h3 class="font-bold text-gray-900 ${isMobile ? 'text-sm' : 'text-base'}">${exp.position || 'Position'}</h3>
+                                                <span class="${textSizes.body} text-gray-500 font-medium">${exp.startDate || 'Start'} – ${exp.endDate || 'End'}</span>
+                                            </div>
+                                            <p class="text-indigo-600 font-medium ${textSizes.body} mb-1">${exp.company || 'Company'}</p>
+                                            <p class="text-gray-700 ${textSizes.body} leading-relaxed">${exp.description || ''}</p>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </section>
+                        ` : ''}
+
+                        ${education.length ? `
+                            <section class="mb-4">
+                                <h2 class="${textSizes.section} font-bold text-gray-900 uppercase tracking-wider mb-3 border-b border-gray-200 pb-1">Education</h2>
+                                <div class="space-y-2">
+                                    ${education.map(edu => `
+                                        <div>
+                                            <div class="flex justify-between items-baseline">
+                                                <h3 class="font-bold text-gray-900 ${isMobile ? 'text-sm' : 'text-base'}">${edu.degree || 'Degree'}</h3>
+                                                <span class="${textSizes.body} text-gray-500">${edu.year || ''}</span>
+                                            </div>
+                                            <p class="text-indigo-600 font-medium ${textSizes.body}">${edu.school || 'School'}</p>
+                                            ${edu.details ? `<p class="text-gray-600 ${textSizes.body} mt-0.5">${edu.details}</p>` : ''}
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </section>
+                        ` : ''}
+
+                        ${skills.length ? `
+                            <section>
+                                <h2 class="${textSizes.section} font-bold text-gray-900 uppercase tracking-wider mb-2 border-b border-gray-200 pb-1">Skills</h2>
+                                <div class="flex flex-wrap gap-1.5">
+                                    ${skills.map(skill => `
+                                        <span class="px-2 py-0.5 bg-gray-100 text-gray-700 rounded ${textSizes.body} font-medium">${skill}</span>
+                                    `).join('')}
+                                </div>
+                            </section>
+                        ` : ''}
+                    </div>
+                `;
+            },
+
+            renderClassicTemplate(personal, experience, education, skills, isMobile) {
+                const textSizes = isMobile ? {
+                    name: 'text-xl',
+                    body: 'text-xs',
+                    section: 'text-sm'
+                } : {
+                    name: 'text-3xl',
+                    body: 'text-sm',
+                    section: 'text-md'
+                };
+
+                return `
+                    <div class="h-full font-serif text-gray-900">
+                        <header class="text-center mb-6 border-b-2 border-gray-800 pb-4">
+                            <h1 class="${textSizes.name} font-bold mb-2 tracking-wide">${personal.name || 'Your Name'}</h1>
+                            <div class="${textSizes.body} text-gray-700 space-y-0.5">
+                                <p>${personal.title || 'Professional Title'}</p>
+                                <p>${[personal.location, personal.email, personal.phone].filter(Boolean).join(' • ')}</p>
+                                ${personal.website ? `<p>${personal.website}</p>` : ''}
+                            </div>
+                        </header>
+
+                        ${personal.summary ? `
+                            <section class="mb-4">
+                                <h2 class="${textSizes.section} font-bold uppercase tracking-widest mb-2 text-center border-b border-gray-300 pb-1">Professional Summary</h2>
+                                <p class="${textSizes.body} leading-relaxed text-justify">${personal.summary}</p>
+                            </section>
+                        ` : ''}
+
+                        ${experience.length ? `
+                            <section class="mb-4">
+                                <h2 class="${textSizes.section} font-bold uppercase tracking-widest mb-3 text-center border-b border-gray-300 pb-1">Professional Experience</h2>
+                                <div class="space-y-4">
+                                    ${experience.map(exp => `
+                                        <div class="${textSizes.body}">
+                                            <div class="flex justify-between font-bold mb-1">
+                                                <span>${exp.company || 'Company'}</span>
+                                                <span>${exp.startDate || ''} – ${exp.endDate || ''}</span>
+                                            </div>
+                                            <div class="italic mb-1 text-gray-700">${exp.position || 'Position'}</div>
+                                            <p class="leading-relaxed text-justify">${exp.description || ''}</p>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </section>
+                        ` : ''}
+
+                        ${education.length ? `
+                            <section class="mb-4">
+                                <h2 class="${textSizes.section} font-bold uppercase tracking-widest mb-3 text-center border-b border-gray-300 pb-1">Education</h2>
+                                <div class="space-y-2 ${textSizes.body}">
+                                    ${education.map(edu => `
+                                        <div>
+                                            <div class="flex justify-between font-bold">
+                                                <span>${edu.school || 'School'}</span>
+                                                <span>${edu.year || ''}</span>
+                                            </div>
+                                            <div class="italic text-gray-700">${edu.degree || 'Degree'}</div>
+                                            ${edu.details ? `<p class="text-xs mt-0.5 text-gray-600">${edu.details}</p>` : ''}
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </section>
+                        ` : ''}
+
+                        ${skills.length ? `
+                            <section>
+                                <h2 class="${textSizes.section} font-bold uppercase tracking-widest mb-2 text-center border-b border-gray-300 pb-1">Skills</h2>
+                                <p class="${textSizes.body} text-center">${skills.join(' • ')}</p>
+                            </section>
+                        ` : ''}
+                    </div>
+                `;
+            },
+
+            renderTechTemplate(personal, experience, education, skills, isMobile) {
+                const textSizes = isMobile ? 'text-xs' : 'text-sm';
+                
+                return `
+                    <div class="h-full bg-slate-50 font-mono text-slate-900">
+                        <header class="mb-4 pb-3 border-b-2 border-slate-800">
+                            <div class="text-xs text-slate-500 mb-1">&lt;header&gt;</div>
+                            <h1 class="${isMobile ? 'text-xl' : 'text-2xl'} font-bold text-slate-900 mb-1">${personal.name || 'Your Name'}</h1>
+                            <div class="${textSizes} text-slate-600 space-y-0.5 pl-3 border-l-2 border-green-500">
+                                <p class="text-green-700 font-bold">${personal.title || 'Professional Title'}</p>
+                                <p>email: ${personal.email || 'email@example.com'}</p>
+                                <p>phone: ${personal.phone || '+1 (555) 000-0000'}</p>
+                                <p>location: ${personal.location || 'City, State'}</p>
+                                ${personal.website ? `<p>web: ${personal.website}</p>` : ''}
+                            </div>
+                            <div class="text-xs text-slate-500 mt-1">&lt;/header&gt;</div>
+                        </header>
+
+                        ${personal.summary ? `
+                            <section class="mb-4">
+                                <div class="text-xs text-slate-500 mb-1">&lt;summary&gt;</div>
+                                <p class="${textSizes} leading-relaxed pl-3 border-l-2 border-blue-400 text-slate-700">${personal.summary}</p>
+                                <div class="text-xs text-slate-500 mt-1">&lt;/summary&gt;</div>
+                            </section>
+                        ` : ''}
+
+                        ${experience.length ? `
+                            <section class="mb-4">
+                                <div class="text-xs text-slate-500 mb-2">&lt;experience&gt;</div>
+                                <div class="space-y-3 pl-3 border-l-2 border-purple-400">
+                                    ${experience.map(exp => `
+                                        <div class="bg-white p-2 rounded border border-slate-200 shadow-sm">
+                                            <div class="flex justify-between items-start mb-1">
+                                                <div>
+                                                    <span class="text-purple-700 font-bold ${textSizes}">${exp.company || 'Company'}</span>
+                                                    <span class="text-slate-400 mx-1">::</span>
+                                                    <span class="text-slate-700 ${textSizes}">${exp.position || 'Position'}</span>
+                                                </div>
+                                                <span class="text-xs text-slate-500 bg-slate-100 px-2 py-0.5 rounded">${exp.startDate || ''} → ${exp.endDate || ''}</span>
+                                            </div>
+                                            <p class="${textSizes} text-slate-600 leading-relaxed">${exp.description || ''}</p>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                                <div class="text-xs text-slate-500 mt-2">&lt;/experience&gt;</div>
+                            </section>
+                        ` : ''}
+
+                        ${education.length ? `
+                            <section class="mb-4">
+                                <div class="text-xs text-slate-500 mb-2">&lt;education&gt;</div>
+                                <div class="space-y-2 pl-3 border-l-2 border-amber-400">
+                                    ${education.map(edu => `
+                                        <div class="flex justify-between items-center bg-white p-2 rounded border border-slate-200">
+                                            <div>
+                                                <span class="text-amber-700 font-bold ${textSizes}">${edu.school || 'School'}</span>
+                                                <p class="${textSizes} text-slate-600">${edu.degree || 'Degree'}</p>
+                                            </div>
+                                            <span class="text-xs text-slate-500 font-mono">${edu.year || ''}</span>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                                <div class="text-xs text-slate-500 mt-2">&lt;/education&gt;</div>
+                            </section>
+                        ` : ''}
+
+                        ${skills.length ? `
+                            <section>
+                                <div class="text-xs text-slate-500 mb-2">&lt;skills&gt;</div>
+                                <div class="flex flex-wrap gap-1.5 pl-3 border-l-2 border-green-400">
+                                    ${skills.map(skill => `
+                                        <span class="px-2 py-0.5 bg-slate-800 text-green-400 rounded text-xs font-bold">${skill}</span>
+                                    `).join('')}
+                                </div>
+                                <div class="text-xs text-slate-500 mt-2">&lt;/skills&gt;</div>
+                            </section>
+                        ` : ''}
+                    </div>
+                `;
+            }
+        };
+
+        document.addEventListener('DOMContentLoaded', () => {
+            app.init();
+        });
+        
+        // Prevent zoom on double tap
+        let lastTouchEnd = 0;
+        document.addEventListener('touchend', (e) => {
+            const now = Date.now();
+            if (now - lastTouchEnd <= 300) {
+                e.preventDefault();
+            }
+            lastTouchEnd = now;
+        }, false);
+    </script>
+</body>
+</html>
